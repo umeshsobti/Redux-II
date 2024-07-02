@@ -1,62 +1,48 @@
 const { createStore, applyMiddleware } = require("redux");
 const thunk = require("redux-thunk").default;
 const axios = require("axios");
-//custom Middleware
 
-// const logger = () => {
-//   return (next) => {
-//     return (action) => {
-//       console.log("action fired", action);
-//       next(action);
-//     };
-//   };
-// };
-//initialState
+// Action Types
+const REQUEST_STARTED = "REQUEST_STARTED";
+const FETCH_SUCCESS = "FETCH_SUCCESS";
+const FETCH_FAILED = "FETCH_FAILED";
 
+// Initial State
 const initialState = {
   posts: [],
   error: "",
   loading: false,
 };
 
-const FETCH_SUCCESS = "FETCH_SUCCESS";
-const REQUEST_STARTED = "REQUEST_STARTED";
-const FETCH_FAILED = "FETCH_FAILED";
+// Action Creators
+const fetchPostRequest = () => ({
+  type: REQUEST_STARTED,
+});
 
-const fetchPostRequest = () => {
-  return {
-    type: REQUEST_STARTED,
-  };
-};
+const fetchPostSuccess = (posts) => ({
+  type: FETCH_SUCCESS,
+  payload: posts,
+});
 
-const fetchPostSuccess = (posts) => {
-  return {
-    type: FETCH_SUCCESS,
-    payload: posts,
-  };
-};
+const fetchPostFailed = (error) => ({
+  type: FETCH_FAILED,
+  payload: error,
+});
 
-const fetchPostFaliure = (err) => {
-  return {
-    type: FETCH_FAILED,
-    payload: err,
-  };
-};
-
+// Async Action Creator (Thunk)
 const fetchPosts = () => {
   return async (dispatch) => {
+    dispatch(fetchPostRequest());
     try {
-      dispatch(fetchPostRequest());
-      const data = await axios.get(
-        "https://jsonplaceholder.typicode.com/posts"
-      );
-      dispatch(fetchPostSuccess(data));
+      const response = await axios.get("https://jsonplaceholder.typicode.com/posts");
+      dispatch(fetchPostSuccess(response.data));
     } catch (error) {
-      dispatch(fetchPostFaliure(error.message));
+      dispatch(fetchPostFailed(error.message));
     }
   };
 };
 
+// Reducer
 const postsReducer = (state = initialState, action) => {
   switch (action.type) {
     case REQUEST_STARTED:
@@ -64,14 +50,31 @@ const postsReducer = (state = initialState, action) => {
         ...state,
         loading: true,
       };
+    case FETCH_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        posts: action.payload,
+      };
+    case FETCH_FAILED:
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+      };
+    default:
+      return state;
   }
 };
 
+// Create Store
 const store = createStore(postsReducer, applyMiddleware(thunk));
 
+// Subscribe to Store
 store.subscribe(() => {
   const data = store.getState();
   console.log(data);
 });
 
+// Dispatch Action
 store.dispatch(fetchPosts());

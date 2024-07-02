@@ -1,3 +1,5 @@
+# Ensure that all text files use LF for the repository
+* text=auto
 node_modules
 dist
 lib
